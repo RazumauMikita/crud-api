@@ -1,2 +1,2 @@
-const lol: number = 543453;
+const lol: number = 123;
 console.log(lol);
