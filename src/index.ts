@@ -1,41 +1,26 @@
 import http from "http";
-import { URL } from "node:url";
+import { v4 as uuid, validate as isValidUserID } from "uuid";
 
-interface User {
-  id: string;
-  username: string;
-  age: number;
-  hobbies: string[];
-}
+import { sendResponse } from "./utils/sendResponse";
+import { getRequestBody } from "./utils/getRequestBody";
+import { UserInterface } from "./types/interfaces";
+import { CONTENT_TYPES, MESSAGES, PORT } from "./constants/constants";
+import { isUserExist, updateUser } from "./utils/updateUserById";
 
-type StatusCode = 200 | 201 | 204 | 400 | 404;
-
-const sendResponse = (
-  serverResponse: http.ServerResponse<http.IncomingMessage>,
-  statusCode: StatusCode,
-  responseData?: string
-): void => {
-  serverResponse.writeHead(statusCode, { "Content-Type": "application/json" });
-  if (responseData) {
-    serverResponse.write(responseData);
-  }
-  serverResponse.end();
-};
-
-const getRequestBody = (request: http.IncomingMessage) => {
-  return new Promise<string>((res, rej) => {
-    let body = "";
-    request.on("data", (data) => {
-      body += data.toString().trim();
-    });
-    request.on("end", () => {
-      res(body);
-    });
-    request.on("error", (error) => {
-      rej(error);
-    });
-  });
-};
+let usersBase: UserInterface[] = [
+  {
+    age: 13,
+    hobbies: ["none"],
+    id: "6ec0bd7f-11c0-43da-975e-2a8ad9ebae0a",
+    username: "John",
+  },
+  {
+    age: 23,
+    hobbies: ["none"],
+    id: "6ec0bd7f-11c0-43da-975e-2a8ad9ebae0c",
+    username: "Lom",
+  },
+];
 
 const isValidUser = (body: string) => {
   const newUser = JSON.parse(body);
@@ -44,9 +29,9 @@ const isValidUser = (body: string) => {
 };
 
 const addNewUser = (body: string) => {
-  const newUser: User = {
+  const newUser: UserInterface = {
     ...JSON.parse(body),
-    id: (usersBase.length + 1).toString(),
+    id: uuid(),
   };
   usersBase.push(newUser);
 };
@@ -57,15 +42,9 @@ const getUserIdFromReq = (req: http.IncomingMessage): string | undefined => {
   }
 };
 
-const getUserById = (id: string): User | undefined => {
+const getUserById = (id: string): UserInterface | undefined => {
   return usersBase.find((user) => user.id === id);
 };
-const PORT: number = 3000;
-
-const usersBase: User[] = [
-  { age: 13, hobbies: ["none"], id: "1", username: "John" },
-  { age: 23, hobbies: ["none"], id: "2", username: "Lom" },
-];
 
 const server = http.createServer(async (req, res) => {
   const method: string | undefined = req.method;
@@ -74,33 +53,58 @@ const server = http.createServer(async (req, res) => {
   switch (req.url) {
     case "/api/users":
       if (method === "GET") {
-        sendResponse(res, 200, JSON.stringify(usersBase));
+        sendResponse(res, 200, CONTENT_TYPES.JSON, JSON.stringify(usersBase));
       }
       if (method === "POST") {
         const body = await getRequestBody(req);
         if (isValidUser(body)) {
           addNewUser(body);
-          sendResponse(res, 201);
+          sendResponse(res, 201, CONTENT_TYPES.JSON, body);
         } else {
-          sendResponse(res, 400, "required fields");
+          sendResponse(res, 400, CONTENT_TYPES.TEXT, MESSAGES.REQUIRED_FIELD);
         }
       }
       break;
     case `/api/users/${userId}`:
-      if (method === "GET" && typeof userId === "string") {
+      if (method === "GET" && userId) {
+        if (!isValidUserID(userId)) {
+          sendResponse(res, 400, CONTENT_TYPES.TEXT, MESSAGES.INVALID_USER_ID);
+          break;
+        }
         const user = getUserById(userId);
         if (user) {
-          sendResponse(res, 200, JSON.stringify(user));
+          sendResponse(res, 200, CONTENT_TYPES.JSON, JSON.stringify(user));
         } else {
-          sendResponse(res, 400, "doesn't exist");
+          sendResponse(res, 400, CONTENT_TYPES.TEXT, MESSAGES.USER_NOT_EXIST);
         }
       }
-      if (method === "POST") {
+      if (method === "PUT" && userId) {
+        if (!isValidUserID(userId)) {
+          sendResponse(res, 400, CONTENT_TYPES.TEXT, MESSAGES.INVALID_USER_ID);
+          break;
+        }
+        if (!isUserExist(usersBase, userId)) {
+          sendResponse(res, 404, CONTENT_TYPES.TEXT, MESSAGES.USER_NOT_EXIST);
+          break;
+        }
+        const body = await getRequestBody(req);
+        usersBase = updateUser(usersBase, userId, body);
+        /* usersBase = usersBase.map((user) => {
+          if (user.id === userId) {
+            return {
+              ...user,
+              ...JSON.parse(body),
+            };
+          }
+          return user;
+        });*/
+        sendResponse(res, 200, CONTENT_TYPES.JSON, body);
+        break;
       }
-      break;
+
+      if (method === "DELETE" && userId) break;
     default:
-      res.setHeader("Content-Type", "text/html");
-      res.end();
+      sendResponse(res, 200, CONTENT_TYPES.JSON, MESSAGES.PATH_NOT_EXIST);
   }
 });
 
