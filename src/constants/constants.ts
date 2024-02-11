@@ -9,4 +9,5 @@ export enum MESSAGES {
   USER_NOT_EXIST = "doesn't exist",
   INVALID_USER_ID = "userId is invalid",
   PATH_NOT_EXIST = "Path not exist",
+  SERVER_ERROR = "Some problem on server, try later",
 }

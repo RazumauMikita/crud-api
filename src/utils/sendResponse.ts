@@ -1,6 +1,6 @@
 import http from "http";
 
-type StatusCode = 200 | 201 | 204 | 400 | 404;
+type StatusCode = 200 | 201 | 204 | 400 | 404 | 500;
 
 export const sendResponse = (
   serverResponse: http.ServerResponse<http.IncomingMessage>,
