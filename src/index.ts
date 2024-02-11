@@ -1,11 +1,14 @@
 import http from "http";
 import { v4 as uuid, validate as isValidUserID } from "uuid";
+import "dotenv/config";
 
 import { sendResponse } from "./utils/sendResponse";
 import { getRequestBody } from "./utils/getRequestBody";
 import { UserInterface } from "./types/interfaces";
 import { CONTENT_TYPES, MESSAGES, PORT } from "./constants/constants";
-import { isUserExist, updateUser } from "./utils/updateUserById";
+import { isUserExist, getPutUpdatedArray } from "./utils/updateUserById";
+import { getDeleteUpdatedArray } from "./utils/getDeleteUpdatedArray";
+import { testFn } from "./decorator";
 
 let usersBase: UserInterface[] = [
   {
@@ -50,6 +53,8 @@ const server = http.createServer(async (req, res) => {
   const method: string | undefined = req.method;
   let userId = getUserIdFromReq(req);
 
+  testFn();
+
   switch (req.url) {
     case "/api/users":
       if (method === "GET") {
@@ -88,26 +93,29 @@ const server = http.createServer(async (req, res) => {
           break;
         }
         const body = await getRequestBody(req);
-        usersBase = updateUser(usersBase, userId, body);
-        /* usersBase = usersBase.map((user) => {
-          if (user.id === userId) {
-            return {
-              ...user,
-              ...JSON.parse(body),
-            };
-          }
-          return user;
-        });*/
+        usersBase = getPutUpdatedArray(usersBase, userId, body);
         sendResponse(res, 200, CONTENT_TYPES.JSON, body);
         break;
       }
 
-      if (method === "DELETE" && userId) break;
+      if (method === "DELETE" && userId) {
+        if (!isValidUserID(userId)) {
+          sendResponse(res, 400, CONTENT_TYPES.TEXT, MESSAGES.INVALID_USER_ID);
+          break;
+        }
+        if (!isUserExist(usersBase, userId)) {
+          sendResponse(res, 404, CONTENT_TYPES.TEXT, MESSAGES.USER_NOT_EXIST);
+          break;
+        }
+        usersBase = getDeleteUpdatedArray(usersBase, userId);
+        sendResponse(res, 204, CONTENT_TYPES.JSON);
+        break;
+      }
     default:
       sendResponse(res, 200, CONTENT_TYPES.JSON, MESSAGES.PATH_NOT_EXIST);
   }
 });
 
-server.listen(PORT, () => {
-  console.log("Server is running...");
+server.listen(process.env.PORT, () => {
+  console.log(`Server is running...PORT: ${process.env.PORT}`);
 });

@@ -1,6 +1,6 @@
 import { UserInterface } from "../types/interfaces";
 
-export const updateUser = (
+export const getPutUpdatedArray = (
   usersBase: UserInterface[],
   id: string,
   body: string

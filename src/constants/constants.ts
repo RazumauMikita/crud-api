@@ -1,4 +1,4 @@
-export const PORT: number = 3000;
+export const PORT: string | undefined = process.env.PORT;
 export enum CONTENT_TYPES {
   TEXT = "text/html",
   JSON = "application/json",
