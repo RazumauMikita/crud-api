@@ -3,7 +3,6 @@ import { validate as isValidUserID } from "uuid";
 import "dotenv/config";
 
 import { CONTENT_TYPES, MESSAGES } from "./constants/constants";
-
 import { UserInterface } from "./types/interfaces";
 import {
   getUserIdFromReq,
@@ -20,13 +19,13 @@ import {
 let usersBase: UserInterface[] = [
   {
     age: 13,
-    hobbies: ["none"],
+    hobbies: [],
     id: "6ec0bd7f-11c0-43da-975e-2a8ad9ebae0a",
     username: "John",
   },
   {
     age: 23,
-    hobbies: ["none"],
+    hobbies: [],
     id: "6ec0bd7f-11c0-43da-975e-2a8ad9ebae0c",
     username: "Lom",
   },
